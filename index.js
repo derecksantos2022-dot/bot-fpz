@@ -31,6 +31,34 @@ const IMAGEM_REAL_FPZ =
     "https://i.ibb.co/WpKGcp13/real-fpz-bot.png";
 
 // ==================================================
+// VERIFICAR CARGO AUTORIZADO PARA ACEITAR/RECUSAR
+// ==================================================
+
+function podeDecidir(interaction) {
+
+    // Administrador também pode decidir
+    if (
+        interaction.member.permissions.has(
+            PermissionsBitField.Flags.Administrator
+        )
+    ) {
+        return true;
+    }
+
+    // Verifica os cargos específicos
+    if (
+        !Array.isArray(config.cargosYoutuber)
+    ) {
+        return false;
+    }
+
+    return config.cargosYoutuber.some(
+        cargoID =>
+            interaction.member.roles.cache.has(cargoID)
+    );
+}
+
+// ==================================================
 // PAINEL
 // ==================================================
 
@@ -39,10 +67,6 @@ function criarPainel() {
     const embed = new EmbedBuilder()
 
         .setColor("#0066FF")
-
-        // ==================================================
-        // FOTO DO REAL FPZ
-        // ==================================================
 
         .setImage(IMAGEM_REAL_FPZ)
 
@@ -88,7 +112,9 @@ function criarPainel() {
 
         .setCustomId("verificacao_youtuber")
 
-        .setLabel("𝙑𝙀𝙍𝙄𝙁𝙄𝘾𝘼𝘾̧𝘼̃𝙊 𝙔𝙊𝙐𝙏𝙐𝘽𝙀𝙍")
+        .setLabel(
+            "𝙑𝙀𝙍𝙄𝙁𝙄𝘾𝘼𝘾̧𝘼̃𝙊 𝙔𝙊𝙐𝙏𝙐𝘽𝙀𝙍"
+        )
 
         .setEmoji("🎥")
 
@@ -157,14 +183,12 @@ client.once("ready", async () => {
                 "👑 𝙍𝙀𝘼𝙇 𝙁𝙋𝙕 | 𝙔𝙊𝙐𝙏𝙐𝘽𝙀𝙍"
         );
 
-        // ==================================================
-        // PAINEL JÁ EXISTE
-        // ==================================================
-
         if (painelExistente) {
 
             console.log("✅ Painel já existe.");
-            console.log("🔄 Atualizando painel com a nova imagem...");
+            console.log(
+                "🔄 Atualizando painel..."
+            );
 
             try {
 
@@ -180,7 +204,9 @@ client.once("ready", async () => {
 
                     await painelExistente.pin();
 
-                    console.log("📌 Painel fixado.");
+                    console.log(
+                        "📌 Painel fixado."
+                    );
                 }
 
             } catch (erro) {
@@ -192,13 +218,7 @@ client.once("ready", async () => {
                 console.log(erro);
             }
 
-        }
-
-        // ==================================================
-        // PAINEL NÃO EXISTE
-        // ==================================================
-
-        else {
+        } else {
 
             const mensagem = await canal.send(
                 criarPainel()
@@ -212,7 +232,9 @@ client.once("ready", async () => {
 
                 await mensagem.pin();
 
-                console.log("📌 Painel fixado.");
+                console.log(
+                    "📌 Painel fixado."
+                );
 
             } catch {
 
@@ -236,229 +258,412 @@ client.once("ready", async () => {
 // BOTÕES
 // ==================================================
 
-client.on("interactionCreate", async interaction => {
+client.on(
+    "interactionCreate",
+    async interaction => {
 
-    if (!interaction.isButton()) {
-        return;
-    }
+        if (!interaction.isButton()) {
+            return;
+        }
 
-    // ==================================================
-    // ABRIR TICKET
-    // ==================================================
+        // ==================================================
+        // ABRIR TICKET
+        // ==================================================
 
-    if (
-        interaction.customId ===
-        "verificacao_youtuber"
-    ) {
+        if (
+            interaction.customId ===
+            "verificacao_youtuber"
+        ) {
 
-        try {
+            try {
 
-            await interaction.deferReply({
-                ephemeral: true
-            });
-
-            const guild = interaction.guild;
-            const membro = interaction.member;
-
-            if (!guild) {
-
-                return interaction.editReply({
-
-                    content:
-                        "❌ 𝙀𝙨𝙩𝙚 𝙗𝙤𝙩𝙖̃𝙤 𝙨𝙤́ 𝙥𝙤𝙙𝙚 𝙨𝙚𝙧 𝙪𝙨𝙖𝙙𝙤 𝙙𝙚𝙣𝙩𝙧𝙤 𝙙𝙚 𝙪𝙢 𝙨𝙚𝙧𝙫𝙞𝙙𝙤𝙧."
+                await interaction.deferReply({
+                    ephemeral: true
                 });
-            }
 
-            // ==================================================
-            // VERIFICAR TICKET
-            // ==================================================
+                const guild =
+                    interaction.guild;
 
-            const ticketExistente =
-                guild.channels.cache.find(
-                    canal =>
-                        canal.name ===
-                        `youtube-${membro.id}`
-                );
+                const membro =
+                    interaction.member;
 
-            if (ticketExistente) {
+                if (!guild) {
 
-                return interaction.editReply({
+                    return interaction.editReply({
 
-                    content:
-                        `❌ 𝙑𝙤𝙘𝙚̂ 𝙟𝙖́ 𝙥𝙤𝙨𝙨𝙪𝙞 𝙪𝙢 𝙩𝙞𝙘𝙠𝙚𝙩 𝙖𝙗𝙚𝙧𝙩𝙤.\n\n` +
-                        `🎫 **𝙏𝙞𝙘𝙠𝙚𝙩:** ${ticketExistente}`
-                });
-            }
-
-            // ==================================================
-            // CATEGORIA
-            // ==================================================
-
-            const categoria =
-                await guild.channels.fetch(
-                    config.categoriaTickets
-                );
-
-            if (!categoria) {
-
-                return interaction.editReply({
-
-                    content:
-                        "❌ 𝘼 𝙘𝙖𝙩𝙚𝙜𝙤𝙧𝙞𝙖 𝙙𝙚 𝙩𝙞𝙘𝙠𝙚𝙩𝙨 𝙣𝙖̃𝙤 𝙛𝙤𝙞 𝙚𝙣𝙘𝙤𝙣𝙩𝙧𝙖𝙙𝙖."
-                });
-            }
-
-            // ==================================================
-            // PERMISSÕES
-            // ==================================================
-
-            const permissoes = [
-
-                {
-                    id: guild.roles.everyone.id,
-
-                    deny: [
-                        PermissionsBitField.Flags.ViewChannel
-                    ]
-                },
-
-                {
-                    id: membro.id,
-
-                    allow: [
-
-                        PermissionsBitField.Flags.ViewChannel,
-
-                        PermissionsBitField.Flags.SendMessages,
-
-                        PermissionsBitField.Flags.ReadMessageHistory,
-
-                        PermissionsBitField.Flags.AttachFiles
-                    ]
+                        content:
+                            "❌ 𝙀𝙨𝙩𝙚 𝙗𝙤𝙩𝙖̃𝙤 𝙨𝙤́ 𝙥𝙤𝙙𝙚 𝙨𝙚𝙧 𝙪𝙨𝙖𝙙𝙤 𝙙𝙚𝙣𝙩𝙧𝙤 𝙙𝙚 𝙪𝙢 𝙨𝙚𝙧𝙫𝙞𝙙𝙤𝙧."
+                    });
                 }
-            ];
 
-            // ==================================================
-            // CARGO EQUIPE
-            // ==================================================
+                // ==================================================
+                // VERIFICAR TICKET
+                // ==================================================
 
-            if (config.cargoEquipe) {
+                const ticketExistente =
+                    guild.channels.cache.find(
+                        canal =>
+                            canal.name ===
+                            `youtube-${membro.id}`
+                    );
+
+                if (ticketExistente) {
+
+                    return interaction.editReply({
+
+                        content:
+                            `❌ 𝙑𝙤𝙘𝙚̂ 𝙟𝙖́ 𝙥𝙤𝙨𝙨𝙪𝙞 𝙪𝙢 𝙩𝙞𝙘𝙠𝙚𝙩 𝙖𝙗𝙚𝙧𝙩𝙤.\n\n` +
+                            `🎫 **𝙏𝙞𝙘𝙠𝙚𝙩:** ${ticketExistente}`
+                    });
+                }
+
+                // ==================================================
+                // CATEGORIA
+                // ==================================================
+
+                const categoria =
+                    await guild.channels.fetch(
+                        config.categoriaTickets
+                    );
+
+                if (!categoria) {
+
+                    return interaction.editReply({
+
+                        content:
+                            "❌ 𝘼 𝙘𝙖𝙩𝙚𝙜𝙤𝙧𝙞𝙖 𝙙𝙚 𝙩𝙞𝙘𝙠𝙚𝙩𝙨 𝙣𝙖̃𝙤 𝙛𝙤𝙞 𝙚𝙣𝙘𝙤𝙣𝙩𝙧𝙖𝙙𝙖."
+                    });
+                }
+
+                // ==================================================
+                // PERMISSÕES
+                // ==================================================
+
+                const permissoes = [
+
+                    {
+                        id:
+                            guild.roles.everyone.id,
+
+                        deny: [
+                            PermissionsBitField.Flags.ViewChannel
+                        ]
+                    },
+
+                    {
+                        id:
+                            membro.id,
+
+                        allow: [
+
+                            PermissionsBitField.Flags.ViewChannel,
+
+                            PermissionsBitField.Flags.SendMessages,
+
+                            PermissionsBitField.Flags.ReadMessageHistory,
+
+                            PermissionsBitField.Flags.AttachFiles
+                        ]
+                    }
+                ];
+
+                // ==================================================
+                // CARGO EQUIPE
+                // ==================================================
+
+                if (config.cargoEquipe) {
+
+                    try {
+
+                        const cargoEquipe =
+                            await guild.roles.fetch(
+                                config.cargoEquipe
+                            );
+
+                        if (cargoEquipe) {
+
+                            permissoes.push({
+
+                                id:
+                                    cargoEquipe.id,
+
+                                allow: [
+
+                                    PermissionsBitField.Flags.ViewChannel,
+
+                                    PermissionsBitField.Flags.SendMessages,
+
+                                    PermissionsBitField.Flags.ReadMessageHistory,
+
+                                    PermissionsBitField.Flags.AttachFiles
+                                ]
+                            });
+                        }
+
+                    } catch {
+
+                        console.log(
+                            "⚠️ 𝘾𝙖𝙧𝙜𝙤 𝙙𝙖 𝙚𝙦𝙪𝙞𝙥𝙚 𝙣𝙖̃𝙤 𝙚𝙣𝙘𝙤𝙣𝙩𝙧𝙖𝙙𝙤."
+                        );
+                    }
+                }
+
+                // ==================================================
+                // CRIAR TICKET
+                // ==================================================
+
+                const ticket =
+                    await guild.channels.create({
+
+                        name:
+                            `youtube-${membro.id}`,
+
+                        type:
+                            ChannelType.GuildText,
+
+                        parent:
+                            categoria.id,
+
+                        permissionOverwrites:
+                            permissoes
+                    });
+
+                console.log(
+                    `🎫 Ticket criado: ${ticket.name}`
+                );
+
+                // ==================================================
+                // EMBED DO TICKET
+                // ==================================================
+
+                const embedTicket =
+                    new EmbedBuilder()
+
+                        .setColor("#0066FF")
+
+                        .setTitle(
+                            "👑 𝙍𝙀𝘼𝙇 𝙁𝙋𝙕 | 𝙑𝙀𝙍𝙄𝙁𝙄𝘾𝘼𝘾̧𝘼̃𝙊"
+                        )
+
+                        .setDescription(
+
+                            "🎥 **𝙑𝙀𝙍𝙄𝙁𝙄𝘾𝘼𝘾̧𝘼̃𝙊 𝘿𝙀 𝙔𝙊𝙐𝙏𝙐𝘽𝙀𝙍**\n\n" +
+
+                            `𝙊𝙡𝙖́, ${membro}!\n\n` +
+
+                            "📋 **𝙀𝙉𝙑𝙄𝙀 𝙊𝙎 𝘿𝘼𝘿𝙊𝙎 𝘼𝘽𝘼𝙄𝙓𝙊:**\n\n" +
+
+                            "🎯 **𝙎𝙐𝘼𝙎 𝙄𝙉𝙎𝘾𝙍𝙄𝙏𝙊𝙎:**\n" +
+
+                            "𝙄𝙣𝙛𝙤𝙧𝙢𝙚 𝙖 𝙦𝙪𝙖𝙣𝙩𝙞𝙙𝙖𝙙𝙚 𝙙𝙚 𝙞𝙣𝙨𝙘𝙧𝙞𝙩𝙤𝙨 𝙙𝙤 𝙨𝙚𝙪 𝙘𝙖𝙣𝙖𝙡.\n\n" +
+
+                            "🎥 **𝙇𝙄𝙉𝙆 𝘿𝙊 𝘾𝘼𝙉𝘼𝙇:**\n" +
+
+                            "𝙀𝙣𝙫𝙞𝙚 𝙤 𝙡𝙞𝙣𝙠 𝙙𝙤 𝙨𝙚𝙪 𝙘𝙖𝙣𝙖𝙡 𝙙𝙤 𝙔𝙤𝙪𝙏𝙪𝙗𝙚.\n\n" +
+
+                            "📹 **𝘾𝙊𝙉𝙏𝙀𝙐́𝘿𝙊𝙎:**\n" +
+
+                            "𝙀𝙣𝙫𝙞𝙚 𝙡𝙞𝙣𝙠𝙨 𝙙𝙤𝙨 𝙨𝙚𝙪𝙨 𝙘𝙤𝙣𝙩𝙚𝙪́𝙙𝙤𝙨.\n\n" +
+
+                            "🔗 **𝙇𝙄𝙉𝙆 𝘿𝙊 𝘿𝙄𝙎𝘾𝙊𝙍𝘿:**\n" +
+
+                            "𝙀𝙣𝙫𝙞𝙚 𝙤 𝙡𝙞𝙣𝙠 𝙙𝙤 𝙨𝙚𝙪 𝙨𝙚𝙧𝙫𝙞𝙙𝙤𝙧 𝙤𝙪 𝙥𝙚𝙧𝙛𝙞𝙡.\n\n" +
+
+                            "📢 **𝘿𝙄𝙑𝙐𝙇𝙂𝘼𝘾̧𝘼̃𝙊:**\n" +
+
+                            "𝙄𝙣𝙛𝙤𝙧𝙢𝙚 𝙤𝙣𝙙𝙚 𝙫𝙤𝙘𝙚̂ 𝙙𝙞𝙫𝙪𝙡𝙜𝙖 𝙖 𝙍𝙀𝘼𝙇 𝙁𝙋𝙕.\n\n" +
+
+                            "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+
+                            "⏳ 𝘼𝙜𝙪𝙖𝙧𝙙𝙚 𝙖 𝙚𝙦𝙪𝙞𝙥𝙚 𝙖𝙣𝙖𝙡𝙞𝙨𝙖𝙧 𝙨𝙪𝙖𝙨 𝙞𝙣𝙛𝙤𝙧𝙢𝙖𝙘̧𝙤̃𝙚𝙨."
+                        )
+
+                        .setFooter({
+
+                            text:
+                                "𝙍𝙀𝘼𝙇 𝙁𝙋𝙕 • 𝙀𝙦𝙪𝙞𝙥𝙚 𝙙𝙚 𝙑𝙚𝙧𝙞𝙛𝙞𝙘𝙖𝙘̧𝙖̃𝙤"
+                        });
+
+                // ==================================================
+                // BOTÕES
+                // ==================================================
+
+                const aceitar =
+                    new ButtonBuilder()
+
+                        .setCustomId(
+                            "aceitar_youtuber"
+                        )
+
+                        .setLabel(
+                            "𝘼𝘾𝙀𝙄𝙏𝙊"
+                        )
+
+                        .setEmoji("✅")
+
+                        .setStyle(
+                            ButtonStyle.Success
+                        );
+
+                const recusar =
+                    new ButtonBuilder()
+
+                        .setCustomId(
+                            "recusar_youtuber"
+                        )
+
+                        .setLabel(
+                            "𝙍𝙀𝘾𝙐𝙎𝘼𝘿𝙊"
+                        )
+
+                        .setEmoji("❌")
+
+                        .setStyle(
+                            ButtonStyle.Danger
+                        );
+
+                const fechar =
+                    new ButtonBuilder()
+
+                        .setCustomId(
+                            "fechar_ticket"
+                        )
+
+                        .setLabel(
+                            "𝙁𝙀𝘾𝙃𝘼𝙍 𝙏𝙄𝘾𝙆𝙀𝙏"
+                        )
+
+                        .setEmoji("🔒")
+
+                        .setStyle(
+                            ButtonStyle.Danger
+                        );
+
+                const rowDecisao =
+                    new ActionRowBuilder()
+                        .addComponents(
+                            aceitar,
+                            recusar
+                        );
+
+                const rowFechar =
+                    new ActionRowBuilder()
+                        .addComponents(
+                            fechar
+                        );
+
+                // ==================================================
+                // ENVIAR TICKET
+                // ==================================================
+
+                await ticket.send({
+
+                    content:
+                        `${membro}`,
+
+                    embeds: [
+                        embedTicket
+                    ],
+
+                    components: [
+                        rowDecisao,
+                        rowFechar
+                    ]
+                });
+
+                await interaction.editReply({
+
+                    content:
+                        "✅ **𝙎𝙚𝙪 𝙩𝙞𝙘𝙠𝙚𝙩 𝙛𝙤𝙞 𝙘𝙧𝙞𝙖𝙙𝙤 𝙘𝙤𝙢 𝙨𝙪𝙘𝙚𝙨𝙨𝙤!**\n\n" +
+                        `🎫 ${ticket}`
+                });
+
+            } catch (erro) {
+
+                console.log(
+                    "======================================"
+                );
+
+                console.log(
+                    "❌ ERRO AO CRIAR TICKET"
+                );
+
+                console.log(erro);
+
+                console.log(
+                    "======================================"
+                );
 
                 try {
 
-                    const cargoEquipe =
-                        await guild.roles.fetch(
-                            config.cargoEquipe
-                        );
+                    if (interaction.deferred) {
 
-                    if (cargoEquipe) {
+                        await interaction.editReply({
 
-                        permissoes.push({
-
-                            id: cargoEquipe.id,
-
-                            allow: [
-
-                                PermissionsBitField.Flags.ViewChannel,
-
-                                PermissionsBitField.Flags.SendMessages,
-
-                                PermissionsBitField.Flags.ReadMessageHistory,
-
-                                PermissionsBitField.Flags.AttachFiles
-                            ]
+                            content:
+                                "❌ 𝙊𝙘𝙤𝙧𝙧𝙚𝙪 𝙪𝙢 𝙚𝙧𝙧𝙤𝙧 𝙖𝙤 𝙘𝙧𝙞𝙖𝙧 𝙤 𝙩𝙞𝙘𝙠𝙚𝙩.\n" +
+                                "𝙑𝙚𝙧𝙞𝙛𝙞𝙦𝙪𝙚 𝙤 𝘾𝙈𝘿."
                         });
                     }
 
-                } catch {
-
-                    console.log(
-                        "⚠️ 𝘾𝙖𝙧𝙜𝙤 𝙙𝙖 𝙚𝙦𝙪𝙞𝙥𝙚 𝙣𝙖̃𝙤 𝙚𝙣𝙘𝙤𝙣𝙩𝙧𝙖𝙙𝙤."
-                    );
-                }
+                } catch {}
             }
 
-            // ==================================================
-            // CRIAR TICKET
-            // ==================================================
+            return;
+        }
 
-            const ticket =
-                await guild.channels.create({
+        // ==================================================
+        // ACEITAR YOUTUBER
+        // ==================================================
 
-                    name:
-                        `youtube-${membro.id}`,
+        if (
+            interaction.customId ===
+            "aceitar_youtuber"
+        ) {
 
-                    type:
-                        ChannelType.GuildText,
+            if (!podeDecidir(interaction)) {
 
-                    parent:
-                        categoria.id,
+                return interaction.reply({
 
-                    permissionOverwrites:
-                        permissoes
+                    content:
+                        "❌ **𝙎𝙤́ 𝙤𝙨 𝙘𝙖𝙧𝙜𝙤𝙨 𝙖𝙪𝙩𝙤𝙧𝙞𝙯𝙖𝙙𝙤𝙨 𝙥𝙤𝙙𝙚𝙢 𝙖𝙘𝙚𝙞𝙩𝙖𝙧 𝙚𝙨𝙩𝙚 𝙩𝙞𝙘𝙠𝙚𝙩.**",
+
+                    ephemeral: true
                 });
+            }
 
-            console.log(
-                `🎫 Ticket criado: ${ticket.name}`
-            );
-
-            // ==================================================
-            // EMBED DO TICKET
-            // ==================================================
-
-            const embedTicket =
+            const embedAceito =
                 new EmbedBuilder()
 
-                    .setColor("#0066FF")
+                    .setColor("#00FF66")
 
                     .setTitle(
-                        "👑 𝙍𝙀𝘼𝙇 𝙁𝙋𝙕 | 𝙑𝙀𝙍𝙄𝙁𝙄𝘾𝘼𝘾̧𝘼̃𝙊"
+                        "✅ 𝙔𝙊𝙐𝙏𝙐𝘽𝙀𝙍 𝘼𝘾𝙀𝙄𝙏𝙊"
                     )
 
                     .setDescription(
 
-                        "🎥 **𝙑𝙀𝙍𝙄𝙁𝙄𝘾𝘼𝘾̧𝘼̃𝙊 𝘿𝙀 𝙔𝙊𝙐𝙏𝙐𝘽𝙀𝙍**\n\n" +
+                        "🎉 **𝙋𝘼𝙍𝘼𝘽𝙀́𝙉𝙎!**\n\n" +
 
-                        `𝙊𝙡𝙖́, ${membro}!\n\n` +
+                        "𝙎𝙪𝙖 𝙨𝙤𝙡𝙞𝙘𝙞𝙩𝙖𝙘̧𝙖̃𝙤 𝙛𝙤𝙞 **𝘼𝘾𝙀𝙄𝙏𝘼** 𝙥𝙚𝙡𝙖 𝙚𝙦𝙪𝙞𝙥𝙚 𝙙𝙖 **𝙍𝙀𝘼𝙇 𝙁𝙋𝙕**.\n\n" +
 
-                        "📋 **𝙀𝙉𝙑𝙄𝙀 𝙊𝙎 𝘿𝘼𝘿𝙊𝙎 𝘼𝘽𝘼𝙄𝙓𝙊:**\n\n" +
-
-                        "🎯 **𝙎𝙐𝘼𝙎 𝙄𝙉𝙎𝘾𝙍𝙄𝙏𝙊𝙎:**\n" +
-
-                        "𝙄𝙣𝙛𝙤𝙧𝙢𝙚 𝙖 𝙦𝙪𝙖𝙣𝙩𝙞𝙙𝙖𝙙𝙚 𝙙𝙚 𝙞𝙣𝙨𝙘𝙧𝙞𝙩𝙤𝙨 𝙙𝙤 𝙨𝙚𝙪 𝙘𝙖𝙣𝙖𝙡.\n\n" +
-
-                        "🎥 **𝙇𝙄𝙉𝙆 𝘿𝙊 𝘾𝘼𝙉𝘼𝙇:**\n" +
-
-                        "𝙀𝙣𝙫𝙞𝙚 𝙤 𝙡𝙞𝙣𝙠 𝙙𝙤 𝙨𝙚𝙪 𝙘𝙖𝙣𝙖𝙡 𝙙𝙤 𝙔𝙤𝙪𝙏𝙪𝙗𝙚.\n\n" +
-
-                        "📹 **𝘾𝙊𝙉𝙏𝙀𝙐́𝘿𝙊𝙎:**\n" +
-
-                        "𝙀𝙣𝙫𝙞𝙚 𝙡𝙞𝙣𝙠𝙨 𝙙𝙤𝙨 𝙨𝙚𝙪𝙨 𝙘𝙤𝙣𝙩𝙚𝙪́𝙙𝙤𝙨.\n\n" +
-
-                        "🔗 **𝙇𝙄𝙉𝙆 𝘿𝙊 𝘿𝙄𝙎𝘾𝙊𝙍𝘿:**\n" +
-
-                        "𝙀𝙣𝙫𝙞𝙚 𝙤 𝙡𝙞𝙣𝙠 𝙙𝙤 𝙨𝙚𝙪 𝙨𝙚𝙧𝙫𝙞𝙙𝙤𝙧 𝙤𝙪 𝙥𝙚𝙧𝙛𝙞𝙡.\n\n" +
-
-                        "📢 **𝘿𝙄𝙑𝙐𝙇𝙂𝘼𝘾̧𝘼̃𝙊:**\n" +
-
-                        "𝙄𝙣𝙛𝙤𝙧𝙢𝙚 𝙤𝙣𝙙𝙚 𝙫𝙤𝙘𝙚̂ 𝙙𝙞𝙫𝙪𝙡𝙜𝙖 𝙖 𝙍𝙀𝘼𝙇 𝙁𝙋𝙕.\n\n" +
-
-                        "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-
-                        "⏳ 𝘼𝙜𝙪𝙖𝙧𝙙𝙚 𝙖 𝙚𝙦𝙪𝙞𝙥𝙚 𝙖𝙣𝙖𝙡𝙞𝙨𝙖𝙧 𝙨𝙪𝙖𝙨 𝙞𝙣𝙛𝙤𝙧𝙢𝙖𝙘̧𝙤̃𝙚𝙨."
+                        "👑 𝘼𝙜𝙤𝙧𝙖 𝙫𝙤𝙘𝙚̂ 𝙛𝙖𝙯 𝙥𝙖𝙧𝙩𝙚 𝙙𝙤𝙨 𝙔𝙤𝙪𝙏𝙪𝙗𝙚𝙧𝙨 𝙫𝙚𝙧𝙞𝙛𝙞𝙘𝙖𝙙𝙤𝙨."
                     )
 
                     .setFooter({
 
                         text:
-                            "𝙍𝙀𝘼𝙇 𝙁𝙋𝙕 • 𝙀𝙦𝙪𝙞𝙥𝙚 𝙙𝙚 𝙑𝙚𝙧𝙞𝙛𝙞𝙘𝙖𝙘̧𝙖̃𝙤"
+                            "𝙍𝙀𝘼𝙇 𝙁𝙋𝙕 • 𝘼𝙘𝙚𝙞𝙩𝙤"
                     });
 
-            // ==================================================
-            // BOTÕES DO TICKET
-            // ==================================================
+            await interaction.reply({
 
-            const aceitar =
+                embeds: [
+                    embedAceito
+                ]
+            });
+
+            const aceitarDesativado =
                 new ButtonBuilder()
 
                     .setCustomId(
@@ -473,9 +678,11 @@ client.on("interactionCreate", async interaction => {
 
                     .setStyle(
                         ButtonStyle.Success
-                    );
+                    )
 
-            const recusar =
+                    .setDisabled(true);
+
+            const recusarDesativado =
                 new ButtonBuilder()
 
                     .setCustomId(
@@ -490,7 +697,9 @@ client.on("interactionCreate", async interaction => {
 
                     .setStyle(
                         ButtonStyle.Danger
-                    );
+                    )
+
+                    .setDisabled(true);
 
             const fechar =
                 new ButtonBuilder()
@@ -509,426 +718,222 @@ client.on("interactionCreate", async interaction => {
                         ButtonStyle.Danger
                     );
 
-            const rowDecisao =
-                new ActionRowBuilder()
-                    .addComponents(
-                        aceitar,
-                        recusar
-                    );
-
-            const rowFechar =
-                new ActionRowBuilder()
-                    .addComponents(
-                        fechar
-                    );
-
-            // ==================================================
-            // ENVIAR TICKET
-            // ==================================================
-
-            await ticket.send({
-
-                content:
-                    `${membro}`,
-
-                embeds: [
-                    embedTicket
-                ],
+            await interaction.message.edit({
 
                 components: [
-                    rowDecisao,
-                    rowFechar
+
+                    new ActionRowBuilder()
+                        .addComponents(
+                            aceitarDesativado,
+                            recusarDesativado
+                        ),
+
+                    new ActionRowBuilder()
+                        .addComponents(
+                            fechar
+                        )
                 ]
             });
 
-            // ==================================================
-            // RESPOSTA
-            // ==================================================
-
-            await interaction.editReply({
-
-                content:
-                    "✅ **𝙎𝙚𝙪 𝙩𝙞𝙘𝙠𝙚𝙩 𝙛𝙤𝙞 𝙘𝙧𝙞𝙖𝙙𝙤 𝙘𝙤𝙢 𝙨𝙪𝙘𝙚𝙨𝙨𝙤!**\n\n" +
-                    `🎫 ${ticket}`
-            });
-
-        } catch (erro) {
-
-            console.log(
-                "======================================"
-            );
-
-            console.log(
-                "❌ ERRO AO CRIAR TICKET"
-            );
-
-            console.log(erro);
-
-            console.log(
-                "======================================"
-            );
-
-            try {
-
-                if (interaction.deferred) {
-
-                    await interaction.editReply({
-
-                        content:
-                            "❌ 𝙊𝙘𝙤𝙧𝙧𝙚𝙪 𝙪𝙢 𝙚𝙧𝙧𝙤 𝙖𝙤 𝙘𝙧𝙞𝙖𝙧 𝙤 𝙩𝙞𝙘𝙠𝙚𝙩.\n" +
-                            "𝙑𝙚𝙧𝙞𝙛𝙞𝙦𝙪𝙚 𝙤 𝘾𝙈𝘿."
-                    });
-                }
-
-            } catch {}
+            return;
         }
 
-        return;
-    }
+        // ==================================================
+        // RECUSAR YOUTUBER
+        // ==================================================
 
-    // ==================================================
-    // ACEITAR YOUTUBER
-    // ==================================================
+        if (
+            interaction.customId ===
+            "recusar_youtuber"
+        ) {
 
-    if (
-        interaction.customId ===
-        "aceitar_youtuber"
-    ) {
+            if (!podeDecidir(interaction)) {
 
-        const podeDecidir =
-            interaction.member.permissions.has(
-                PermissionsBitField.Flags.Administrator
-            ) ||
-            (
-                config.cargoEquipe &&
-                interaction.member.roles.cache.has(
-                    config.cargoEquipe
-                )
-            );
+                return interaction.reply({
 
-        if (!podeDecidir) {
+                    content:
+                        "❌ **𝙎𝙤́ 𝙤𝙨 𝙘𝙖𝙧𝙜𝙤𝙨 𝙖𝙪𝙩𝙤𝙧𝙞𝙯𝙖𝙙𝙤𝙨 𝙥𝙤𝙙𝙚𝙢 𝙧𝙚𝙘𝙪𝙨𝙖𝙧 𝙚𝙨𝙩𝙚 𝙩𝙞𝙘𝙠𝙚𝙩.**",
 
-            return interaction.reply({
-
-                content:
-                    "❌ **𝙎𝙤́ 𝙖 𝙚𝙦𝙪𝙞𝙥𝙚 𝙥𝙤𝙙𝙚 𝙖𝙘𝙚𝙞𝙩𝙖𝙧 𝙚𝙨𝙩𝙚 𝙩𝙞𝙘𝙠𝙚𝙩.**",
-
-                ephemeral: true
-            });
-        }
-
-        const embedAceito =
-            new EmbedBuilder()
-
-                .setColor("#00FF66")
-
-                .setTitle(
-                    "✅ 𝙔𝙊𝙐𝙏𝙐𝘽𝙀𝙍 𝘼𝘾𝙀𝙄𝙏𝙊"
-                )
-
-                .setDescription(
-
-                    "🎉 **𝙋𝘼𝙍𝘼𝘽𝙀́𝙉𝙎!**\n\n" +
-
-                    "𝙎𝙪𝙖 𝙨𝙤𝙡𝙞𝙘𝙞𝙩𝙖𝙘̧𝙖̃𝙤 𝙛𝙤𝙞 **𝘼𝘾𝙀𝙄𝙏𝘼** 𝙥𝙚𝙡𝙖 𝙚𝙦𝙪𝙞𝙥𝙚 𝙙𝙖 **𝙍𝙀𝘼𝙇 𝙁𝙋𝙕**.\n\n" +
-
-                    "👑 𝘼𝙜𝙤𝙧𝙖 𝙫𝙤𝙘𝙚̂ 𝙛𝙖𝙯 𝙥𝙖𝙧𝙩𝙚 𝙙𝙤𝙨 𝙔𝙤𝙪𝙏𝙪𝙗𝙚𝙧𝙨 𝙫𝙚𝙧𝙞𝙛𝙞𝙘𝙖𝙙𝙤𝙨."
-                )
-
-                .setFooter({
-
-                    text:
-                        "𝙍𝙀𝘼𝙇 𝙁𝙋𝙕 • 𝘼𝙘𝙚𝙞𝙩𝙤"
+                    ephemeral: true
                 });
+            }
 
-        await interaction.reply({
-
-            embeds: [
-                embedAceito
-            ]
-        });
-
-        const aceitarDesativado =
-            new ButtonBuilder()
-
-                .setCustomId(
-                    "aceitar_youtuber"
-                )
-
-                .setLabel(
-                    "𝘼𝘾𝙀𝙄𝙏𝙊"
-                )
-
-                .setEmoji("✅")
-
-                .setStyle(
-                    ButtonStyle.Success
-                )
-
-                .setDisabled(true);
-
-        const recusarDesativado =
-            new ButtonBuilder()
-
-                .setCustomId(
-                    "recusar_youtuber"
-                )
-
-                .setLabel(
-                    "𝙍𝙀𝘾𝙐𝙎𝘼𝘿𝙊"
-                )
-
-                .setEmoji("❌")
-
-                .setStyle(
-                    ButtonStyle.Danger
-                )
-
-                .setDisabled(true);
-
-        const fechar =
-            new ButtonBuilder()
-
-                .setCustomId(
-                    "fechar_ticket"
-                )
-
-                .setLabel(
-                    "𝙁𝙀𝘾𝙃𝘼𝙍 𝙏𝙄𝘾𝙆𝙀𝙏"
-                )
-
-                .setEmoji("🔒")
-
-                .setStyle(
-                    ButtonStyle.Danger
-                );
-
-        await interaction.message.edit({
-
-            components: [
-
-                new ActionRowBuilder()
-                    .addComponents(
-                        aceitarDesativado,
-                        recusarDesativado
-                    ),
-
-                new ActionRowBuilder()
-                    .addComponents(
-                        fechar
-                    )
-            ]
-        });
-
-        return;
-    }
-
-    // ==================================================
-    // RECUSAR YOUTUBER
-    // ==================================================
-
-    if (
-        interaction.customId ===
-        "recusar_youtuber"
-    ) {
-
-        const podeDecidir =
-            interaction.member.permissions.has(
-                PermissionsBitField.Flags.Administrator
-            ) ||
-            (
-                config.cargoEquipe &&
-                interaction.member.roles.cache.has(
-                    config.cargoEquipe
-                )
-            );
-
-        if (!podeDecidir) {
-
-            return interaction.reply({
-
-                content:
-                    "❌ **𝙎𝙤́ 𝙖 𝙚𝙦𝙪𝙞𝙥𝙚 𝙥𝙤𝙙𝙚 𝙧𝙚𝙘𝙪𝙨𝙖𝙧 𝙚𝙨𝙩𝙚 𝙩𝙞𝙘𝙠𝙚𝙩.**",
-
-                ephemeral: true
-            });
-        }
-
-        const embedRecusado =
-            new EmbedBuilder()
-
-                .setColor("#FF0000")
-
-                .setTitle(
-                    "❌ 𝙔𝙊𝙐𝙏𝙐𝘽𝙀𝙍 𝙍𝙀𝘾𝙐𝙎𝘼𝘿𝙊"
-                )
-
-                .setDescription(
-
-                    "❌ **𝙎𝙐𝘼 𝙎𝙊𝙇𝙄𝘾𝙄𝙏𝘼𝘾̧𝘼̃𝙊 𝙁𝙊𝙄 𝙍𝙀𝘾𝙐𝙎𝘼𝘿𝘼.**\n\n" +
-
-                    "𝙎𝙪𝙖 𝙫𝙚𝙧𝙞𝙛𝙞𝙘𝙖𝙘̧𝙖̃𝙤 𝙙𝙚 𝙔𝙤𝙪𝙏𝙪𝙗𝙚𝙧 𝙣𝙖̃𝙤 𝙛𝙤𝙞 𝙖𝙥𝙧𝙤𝙫𝙖𝙙𝙖 𝙥𝙚𝙡𝙖 𝙚𝙦𝙪𝙞𝙥𝙚.\n\n" +
-
-                    "📋 𝙑𝙚𝙧𝙞𝙛𝙞𝙦𝙪𝙚 𝙖𝙨 𝙞𝙣𝙛𝙤𝙧𝙢𝙖𝙘̧𝙤̃𝙚𝙨 𝙚𝙣𝙫𝙞𝙖𝙙𝙖𝙨 𝙚 𝙩𝙚𝙣𝙩𝙚 𝙣𝙤𝙫𝙖𝙢𝙚𝙣𝙩𝙚 𝙨𝙚 𝙣𝙚𝙘𝙚𝙨𝙨𝙖́𝙧𝙞𝙤."
-                )
-
-                .setFooter({
-
-                    text:
-                        "𝙍𝙀𝘼𝙇 𝙁𝙋𝙕 • 𝙍𝙚𝙘𝙪𝙨𝙖𝙙𝙤"
-                });
-
-        await interaction.reply({
-
-            embeds: [
-                embedRecusado
-            ]
-        });
-
-        const aceitarDesativado =
-            new ButtonBuilder()
-
-                .setCustomId(
-                    "aceitar_youtuber"
-                )
-
-                .setLabel(
-                    "𝘼𝘾𝙀𝙄𝙏𝙊"
-                )
-
-                .setEmoji("✅")
-
-                .setStyle(
-                    ButtonStyle.Success
-                )
-
-                .setDisabled(true);
-
-        const recusarDesativado =
-            new ButtonBuilder()
-
-                .setCustomId(
-                    "recusar_youtuber"
-                )
-
-                .setLabel(
-                    "𝙍𝙀𝘾𝙐𝙎𝘼𝘿𝙊"
-                )
-
-                .setEmoji("❌")
-
-                .setStyle(
-                    ButtonStyle.Danger
-                )
-
-                .setDisabled(true);
-
-        const fechar =
-            new ButtonBuilder()
-
-                .setCustomId(
-                    "fechar_ticket"
-                )
-
-                .setLabel(
-                    "𝙁𝙀𝘾𝙃𝘼𝙍 𝙏𝙄𝘾𝙆𝙀𝙏"
-                )
-
-                .setEmoji("🔒")
-
-                .setStyle(
-                    ButtonStyle.Danger
-                );
-
-        await interaction.message.edit({
-
-            components: [
-
-                new ActionRowBuilder()
-                    .addComponents(
-                        aceitarDesativado,
-                        recusarDesativado
-                    ),
-
-                new ActionRowBuilder()
-                    .addComponents(
-                        fechar
-                    )
-            ]
-        });
-
-        return;
-    }
-
-    // ==================================================
-    // FECHAR TICKET
-    // ==================================================
-
-    if (
-        interaction.customId ===
-        "fechar_ticket"
-    ) {
-
-        try {
-
-            const canal =
-                interaction.channel;
-
-            const embedFechando =
+            const embedRecusado =
                 new EmbedBuilder()
 
                     .setColor("#FF0000")
 
                     .setTitle(
-                        "🔒 𝙏𝙄𝘾𝙆𝙀𝙏 𝙎𝙀𝙍𝘼́ 𝙁𝙀𝘾𝙃𝘼𝘿𝙊"
+                        "❌ 𝙔𝙊𝙐𝙏𝙐𝘽𝙀𝙍 𝙍𝙀𝘾𝙐𝙎𝘼𝘿𝙊"
                     )
 
                     .setDescription(
 
-                        "🔴 𝙀𝙨𝙩𝙚 𝙩𝙞𝙘𝙠𝙚𝙩 𝙨𝙚𝙧𝙖́ 𝙛𝙚𝙘𝙝𝙖𝙙𝙤 𝙚𝙢 **𝟱 𝙨𝙚𝙜𝙪𝙣𝙙𝙤𝙨**.\n\n" +
+                        "❌ **𝙎𝙐𝘼 𝙎𝙊𝙇𝙄𝘾𝙄𝙏𝘼𝘾̧𝘼̃𝙊 𝙁𝙊𝙄 𝙍𝙀𝘾𝙐𝙎𝘼𝘿𝘼.**\n\n" +
 
-                        "𝙊𝙗𝙧𝙞𝙜𝙖𝙙𝙤 𝙥𝙤𝙧 𝙚𝙣𝙩𝙧𝙖𝙧 𝙚𝙢 𝙘𝙤𝙣𝙩𝙖𝙩𝙤 𝙘𝙤𝙢 𝙖 **𝙍𝙀𝘼𝙇 𝙁𝙋𝙕**."
-                    );
+                        "𝙎𝙪𝙖 𝙫𝙚𝙧𝙞𝙛𝙞𝙘𝙖𝙘̧𝙖̃𝙤 𝙙𝙚 𝙔𝙤𝙪𝙏𝙪𝙗𝙚𝙧 𝙣𝙖̃𝙤 𝙛𝙤𝙞 𝙖𝙥𝙧𝙤𝙫𝙖𝙙𝙖 𝙥𝙚𝙡𝙖 𝙚𝙦𝙪𝙞𝙥𝙚.\n\n" +
+
+                        "📋 𝙑𝙚𝙧𝙞𝙛𝙞𝙦𝙪𝙚 𝙖𝙨 𝙞𝙣𝙛𝙤𝙧𝙢𝙖𝙘̧𝙤̃𝙚𝙨 𝙚𝙣𝙫𝙞𝙖𝙙𝙖𝙨 𝙚 𝙩𝙚𝙣𝙩𝙚 𝙣𝙤𝙫𝙖𝙢𝙚𝙣𝙩𝙚 𝙨𝙚 𝙣𝙚𝙘𝙚𝙨𝙨𝙖́𝙧𝙞𝙤."
+                    )
+
+                    .setFooter({
+
+                        text:
+                            "𝙍𝙀𝘼𝙇 𝙁𝙋𝙕 • 𝙍𝙚𝙘𝙪𝙨𝙖𝙙𝙤"
+                    });
 
             await interaction.reply({
 
                 embeds: [
-                    embedFechando
+                    embedRecusado
                 ]
             });
 
-            setTimeout(
-                async () => {
+            const aceitarDesativado =
+                new ButtonBuilder()
 
-                    try {
+                    .setCustomId(
+                        "aceitar_youtuber"
+                    )
 
-                        await canal.delete();
+                    .setLabel(
+                        "𝘼𝘾𝙀𝙄𝙏𝙊"
+                    )
 
-                        console.log(
-                            `🗑️ Ticket excluído: ${canal.name}`
+                    .setEmoji("✅")
+
+                    .setStyle(
+                        ButtonStyle.Success
+                    )
+
+                    .setDisabled(true);
+
+            const recusarDesativado =
+                new ButtonBuilder()
+
+                    .setCustomId(
+                        "recusar_youtuber"
+                    )
+
+                    .setLabel(
+                        "𝙍𝙀𝘾𝙐𝙎𝘼𝘿𝙊"
+                    )
+
+                    .setEmoji("❌")
+
+                    .setStyle(
+                        ButtonStyle.Danger
+                    )
+
+                    .setDisabled(true);
+
+            const fechar =
+                new ButtonBuilder()
+
+                    .setCustomId(
+                        "fechar_ticket"
+                    )
+
+                    .setLabel(
+                        "𝙁𝙀𝘾𝙃𝘼𝙍 𝙏𝙄𝘾𝙆𝙀𝙏"
+                    )
+
+                    .setEmoji("🔒")
+
+                    .setStyle(
+                        ButtonStyle.Danger
+                    );
+
+            await interaction.message.edit({
+
+                components: [
+
+                    new ActionRowBuilder()
+                        .addComponents(
+                            aceitarDesativado,
+                            recusarDesativado
+                        ),
+
+                    new ActionRowBuilder()
+                        .addComponents(
+                            fechar
+                        )
+                ]
+            });
+
+            return;
+        }
+
+        // ==================================================
+        // FECHAR TICKET
+        // ==================================================
+
+        if (
+            interaction.customId ===
+            "fechar_ticket"
+        ) {
+
+            try {
+
+                const canal =
+                    interaction.channel;
+
+                const embedFechando =
+                    new EmbedBuilder()
+
+                        .setColor("#FF0000")
+
+                        .setTitle(
+                            "🔒 𝙏𝙄𝘾𝙆𝙀𝙏 𝙎𝙀𝙍𝘼́ 𝙁𝙀𝘾𝙃𝘼𝘿𝙊"
+                        )
+
+                        .setDescription(
+
+                            "🔴 𝙀𝙨𝙩𝙚 𝙩𝙞𝙘𝙠𝙚𝙩 𝙨𝙚𝙧𝙖́ 𝙛𝙚𝙘𝙝𝙖𝙙𝙤 𝙚𝙢 **𝟱 𝙨𝙚𝙜𝙪𝙣𝙙𝙤𝙨**.\n\n" +
+
+                            "𝙊𝙗𝙧𝙞𝙜𝙖𝙙𝙤 𝙥𝙤𝙧 𝙚𝙣𝙩𝙧𝙖𝙧 𝙚𝙢 𝙘𝙤𝙣𝙩𝙖𝙩𝙤 𝙘𝙤𝙢 𝙖 **𝙍𝙀𝘼𝙇 𝙁𝙋𝙕**."
                         );
 
-                    } catch {
+                await interaction.reply({
 
-                        console.log(
-                            "❌ Não foi possível excluir o ticket."
-                        );
-                    }
+                    embeds: [
+                        embedFechando
+                    ]
+                });
 
-                },
-                5000
-            );
+                setTimeout(
+                    async () => {
 
-        } catch (erro) {
+                        try {
 
-            console.log(
-                "❌ ERRO AO FECHAR TICKET:"
-            );
+                            await canal.delete();
 
-            console.log(erro);
+                            console.log(
+                                `🗑️ Ticket excluído: ${canal.name}`
+                            );
+
+                        } catch {
+
+                            console.log(
+                                "❌ Não foi possível excluir o ticket."
+                            );
+                        }
+
+                    },
+                    5000
+                );
+
+            } catch (erro) {
+
+                console.log(
+                    "❌ ERRO AO FECHAR TICKET:"
+                );
+
+                console.log(erro);
+            }
         }
     }
-});
+);
 
 // ==================================================
 // COMANDOS
@@ -1031,10 +1036,19 @@ client.on(
 );
 
 // ==================================================
-// LOGIN
+// LOGIN RAILWAY
 // ==================================================
 
-client.login(config.token)
+if (!process.env.TOKEN) {
+
+    console.log(
+        "❌ ERRO: A variável TOKEN não foi encontrada no Railway."
+    );
+
+    process.exit(1);
+}
+
+client.login(process.env.TOKEN)
 
     .then(() => {
 
